@@ -45,7 +45,7 @@ public class WebChatGPT {
     /**
      * 自己chatGpt的ApiKey
      */
-    private String apiKey = "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";
+    private String apiKey = "sk-***";
 
     private ChatGptRequestParameter chatGptRequestParameter = new ChatGptRequestParameter();
 
@@ -61,80 +61,15 @@ public class WebChatGPT {
      */
     private String apiUrl = "https://api.openai.com/v1/chat/completions";
 
-    public String getAnswer(WebClient webClient,String question){
-        Mono<ChatGptResponseParameter> mono = webClient
-                .post()
-                .uri(apiUrl)
-                .header(HttpHeaders.CONTENT_TYPE, "application/json")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + "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")
-                .body(BodyInserters.fromValue(new ChatGptMessage("user", question)))
-                .retrieve()
-                .bodyToMono(ChatGptResponseParameter.class);
 
-        ChatGptResponseParameter block = mono.block();
-//        (parameter -> {
-//            String ans = "";
-//            parameter
-//            for (Choices choice : parameter.getChoices()) {
-//                ChatGptMessage message = choice.getMessage();
-////                parameter.addMessages(new ChatGptMessage(message.getRole(), message.getContent()));
-//                String s = message.getContent().replaceAll("\n+", "\n");
-//                ans += s;
-//            }
-//        });
-        List<Choices> choices = block.getChoices();
-        Choices choices1 = choices.get(0);
-
-
-
-        return null;
-    }
-
-
-    public  Flux<String> getAnswer(Session session,String str){
-     WebClient webClient = WebClient.builder()
-                .build();
-
-        ChatGptMessage chatGptMessage = new ChatGptMessage("user", str);
-        chatGptRequestParameter.addMessages(chatGptMessage);
-
-        Flux<String> objectFlux = Flux.create(emitter -> {
-            Flux<String> stringFlux = webClient.post()
-                    .uri(apiUrl)
-                    .header(HttpHeaders.CONTENT_TYPE, "application/json")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-//                    .body(BodyInserters.fromValue(chatGptRequestParameter))
-                    .body(BodyInserters.fromValue(jsonObject(str))) //参数
-                    .retrieve()
-                    .bodyToFlux(String.class)
-                    .onErrorResume(WebClientResponseException.class, cg -> {
-
-                        cg.getStatusCode();
-                        String res = cg.getResponseBodyAsString();
-                        System.out.println(res);
-                        emitter.next(res); // 传递错误信息给订阅者
-                        return Mono.empty(); // 返回一个空的 Mono，表示继续执行流
-                    })
-                    .doOnError(error -> System.err.println("Error: " + error))
-                    .doOnComplete(() -> System.out.println("Done"));
-            OpenAISubscriber openAISubscriber = new OpenAISubscriber(emitter);
-
-            stringFlux.subscribe(openAISubscriber);
-            emitter.onDispose(openAISubscriber);
-        });
-//
-        objectFlux.subscribe(
-                // 处理每个元素的回调
-                item -> System.out.println("Received: " + item),
-                // 处理错误的回调
-                error -> System.err.println("Error: " + error),
-                // 处理流完成的回调
-                () -> System.out.println("Done")
-        );
-        return objectFlux;
-
-    }
-
+    /**
+     * 推送
+     * @param session
+     * @param str
+     * @return void
+     * @author 郑福平2403
+     * @date 2024/1/19 10:30:16
+     */
     public void getAnswer2(Session session, String str) {
 
         ChatGptMessage chatGptMessage = new ChatGptMessage("user", str);
@@ -145,26 +80,26 @@ public class WebChatGPT {
 //                .body(BodyInserters.fromValue(chatGptRequestParameter)) //参数
                 .body(BodyInserters.fromValue(jsonObject(str))) //参数
                 .retrieve()
-                .bodyToFlux(ChatGptResponseParameter.class) //输出格式
+                .bodyToFlux(String.class) //输出格式
                 .map(s -> {
                     if (!Objects.equals(s, "[DONE]")) {
                         log.info("Gpt输出：{}", s);
 //                        ChatGptResponseParameter chatGptResponseParameter = JSONUtil.toBean(s, ChatGptResponseParameter.class);
 
-                        ChatGptMessage message = s.getChoices().get(0).getDelta();
-//                        JSONObject jo = JSON.parseObject(s).getJSONArray("choices").getJSONObject(0).getJSONObject("delta");
-//                        String content = jo.getString("content");
-//                        if (message != null) {
+//                        ChatGptMessage message = chatGptResponseParameter.getChoices().get(0).getDelta();
+                        JSONObject jo = JSON.parseObject(s).getJSONArray("choices").getJSONObject(0).getJSONObject("delta");
+                        String content = jo.getString("content");
+                        if (content != null) {
 
-//                            try {
-//                                session.getBasicRemote().sendText(content);
-                                log.info("Gpt输出：{}", s);
-//
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                            return content;
-//                        }
+                            try {
+                                session.getBasicRemote().sendText(content);
+                                    log.info("Gpt输出：{}", s);
+
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            return content;
+                        }
                     }
                     return "";
                 })
