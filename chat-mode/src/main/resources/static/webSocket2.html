@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Java后端WebSocket的Tomcat实现2</title>
+    <!-- 引入 CKEditor 的库文件 -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/43.0.1/classic/ckeditor.js"></script>
+</head>
+
+<body>
+
+Welcome<br /><input id="text" type="text" onkeydown="checkEnter(event)" />
+<button onclick="send()">发送消息</button>
+<hr />
+<button onclick="closeWebSocket()">关闭WebSocket连接</button>
+<hr />
+<!-- 将 textarea 转换为 CKEditor 富文本编辑器 -->
+<div id="editor"></div>
+
+</body>
+<script type="text/javascript">
+    var websocket = null;
+
+    if ('WebSocket' in window) {
+        websocket = new WebSocket("ws://localhost:8088/websocket/100");
+    } else {
+        alert('当前浏览器 Not support websocket')
+    }
+
+    websocket.onerror = function () {
+        setMessageInnerHTML("WebSocket连接发生错误");
+    };
+
+    websocket.onopen = function () {
+        setMessageInnerHTML("WebSocket连接成功");
+    }
+
+    websocket.onmessage = function (event) {
+        console.log(event);
+        if (event.data !== "conn_success") {
+            setMessageInnerHTML(event.data);
+        }
+    }
+
+    websocket.onclose = function () {
+        setMessageInnerHTML("WebSocket连接关闭");
+    }
+
+    window.onbeforeunload = function () {
+        closeWebSocket();
+    }
+
+    function setMessageInnerHTML(innerHTML) {
+        document.getElementById('message').innerHTML += innerHTML;
+    }
+
+    function closeWebSocket() {
+        websocket.close();
+    }
+
+    function send() {
+        // 获取 CKEditor 富文本编辑器的内容
+        var message = CKEDITOR.instances.editor.getData();
+        websocket.send('{"msg":"' + message + '"}');
+        setMessageInnerHTML("<br>--------------发送消息：" + message + "<br>");
+        // 清空编辑器内容
+        CKEDITOR.instances.editor.setData('');
+    }
+
+    function checkEnter(event) {
+        if (event.keyCode === 13) {
+            send();
+        }
+    }
+
+    // 初始化 CKEditor 富文本编辑器
+    ClassicEditor
+        .create(document.querySelector('#editor'))
+        .catch(error => {
+            console.error(error);
+        });
+</script>
+
+</html>

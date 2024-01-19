@@ -1,0 +1,7 @@
+server:
+  port: 8088
+
+chatgpt:
+  apiKey: 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
+  apiUrl: https://api.openai.com/v1/chat/completions
+  model: gpt-3.5-turbo-0301
